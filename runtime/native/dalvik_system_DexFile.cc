@@ -248,9 +248,16 @@ static jboolean DexFile_isDexOptNeeded(JNIEnv* env, jclass, jstring javaFilename
       if (ClassLinker::VerifyOatFileChecksums(oat_file.get(), filename.c_str(), location_checksum)) {
         if (debug_logging) {
           LOG(INFO) << "DexFile_isDexOptNeeded precompiled file " << odex_filename
-              << " is up-to-date checksum compared to " << filename.c_str();
+              << " has an up-to-date checksum compared to " << filename.c_str();
         }
         return JNI_FALSE;
+      } else {
+        if (kVerboseLogging) {
+          LOG(INFO) << "DexFile_isDexOptNeeded found precompiled file " << odex_filename
+              << " with an out-of-date checksum compared to " << filename.c_str()
+              << ": " << error_msg;
+        }
+        error_msg.clear();
       }
     }
   }
