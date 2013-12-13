@@ -272,7 +272,7 @@ static void InterpreterJni(Thread* self, ArtMethod* method, StringPiece shorty,
       result->SetI(fn(soa.Env(), klass.get(), args[0]));
     } else if (shorty == "LL") {
       typedef jobject (fntype)(JNIEnv*, jclass, jobject);
-      const fntype* fn = reinterpret_cast<fntype*>(const_cast<void*>(method->GetNativeMethod()));
+      fntype* const fn = reinterpret_cast<fntype*>(const_cast<void*>(method->GetNativeMethod()));
       ScopedLocalRef<jclass> klass(soa.Env(),
                                    soa.AddLocalReference<jclass>(method->GetDeclaringClass()));
       ScopedLocalRef<jobject> arg0(soa.Env(),
