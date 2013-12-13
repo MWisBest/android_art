@@ -86,7 +86,7 @@ LLVM_ROOT_PATH := external/llvm
 -include $(LLVM_ROOT_PATH)/llvm.mk
 
 # Clang build.
-ART_TARGET_CLANG := true
+# ART_TARGET_CLANG := true
 # ART_HOST_CLANG := true
 
 # directory used for gtests on device
