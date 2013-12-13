@@ -111,11 +111,11 @@ art_cflags := \
 	-fno-rtti \
 	-std=gnu++11 \
 	-ggdb3 \
-	-Wall \
-	-Werror \
-	-Wextra \
 	-Wstrict-aliasing=3 \
-	-fstrict-aliasing
+	-fstrict-aliasing \
+#	-Wall \
+	-Werror \
+	-Wextra
 
 ifeq ($(ART_SMALL_MODE),true)
   art_cflags += -DART_SMALL_MODE=1
