@@ -143,7 +143,7 @@ extern "C" uint64_t artInvokeInterfaceTrampoline(mirror::ArtMethod* interface_me
 }
 
 
-static uint64_t artInvokeCommon(uint32_t method_idx, mirror::Object* this_object,
+uint64_t artInvokeCommon(uint32_t method_idx, mirror::Object* this_object,
                                 mirror::ArtMethod* caller_method,
                                 Thread* self, mirror::ArtMethod** sp, bool access_check,
                                 InvokeType type)
