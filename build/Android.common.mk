@@ -87,7 +87,7 @@ LLVM_ROOT_PATH := external/llvm
 
 # Clang build.
 ART_TARGET_CLANG := true
-ART_HOST_CLANG := true
+# ART_HOST_CLANG := true
 
 # directory used for gtests on device
 ART_NATIVETEST_DIR := /data/nativetest/art
