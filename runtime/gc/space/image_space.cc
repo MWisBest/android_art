@@ -81,6 +81,11 @@ static void PruneDalvikCache(InstructionSet isa) {
   RealPruneDalvikCache(GetDalvikCacheOrDie(".", false));
   // Prune /data/dalvik-cache/<isa>.
   RealPruneDalvikCache(GetDalvikCacheOrDie(GetInstructionSetString(isa), false));
+
+  // Prune /cache/dalvik-cache.
+  RealPruneDalvikCache(GetDalvikCacheOrDie(".", false, "/system"));
+  // Prune /cache/dalvik-cache/<isa>.
+  RealPruneDalvikCache(GetDalvikCacheOrDie(GetInstructionSetString(isa), false, "/system"));
 }
 
 static void RealPruneDalvikCache(const std::string& cache_dir_path) {
@@ -217,7 +222,7 @@ bool ImageSpace::FindImageFilename(const char* image_location,
   *dalvik_cache_exists = false;
   std::string dalvik_cache;
   GetDalvikCache(GetInstructionSetString(image_isa), true, &dalvik_cache,
-                 &have_android_data, dalvik_cache_exists, is_global_cache);
+                 &have_android_data, dalvik_cache_exists, is_global_cache, image_location);
 
   if (have_android_data && *dalvik_cache_exists) {
     // Always set output location even if it does not exist,

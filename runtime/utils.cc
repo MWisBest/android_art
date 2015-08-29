@@ -59,6 +59,8 @@
 #include <linux/unistd.h>
 #endif
 
+//#include <cutils/properties.h>
+
 namespace art {
 
 pid_t GetTid() {
@@ -1201,11 +1203,44 @@ const char* GetAndroidDataSafe(std::string* error_msg) {
   return android_data;
 }
 
+const char* GetAndroidCache() {
+  std::string error_msg;
+  const char* dir = GetAndroidCacheSafe(&error_msg);
+  if (dir != nullptr) {
+    return dir;
+  } else {
+    LOG(FATAL) << error_msg;
+    return "";
+  }
+}
+
+const char* GetAndroidCacheSafe(std::string* error_msg) {
+  const char* android_cache = getenv("ANDROID_CACHE");
+  if (android_cache == NULL) {
+    if (OS::DirectoryExists("/cache")) {
+      android_cache = "/cache";
+    } else {
+      *error_msg = "ANDROID_CACHE not set and /cache does not exist";
+      return nullptr;
+    }
+  }
+  if (!OS::DirectoryExists(android_cache)) {
+    *error_msg = StringPrintf("Failed to find ANDROID_CACHE directory %s", android_cache);
+    return nullptr;
+  }
+  return android_cache;
+}
+
 void GetDalvikCache(const char* subdir, const bool create_if_absent, std::string* dalvik_cache,
-                    bool* have_android_data, bool* dalvik_cache_exists, bool* is_global_cache) {
+                    bool* have_android_data, bool* dalvik_cache_exists, bool* is_global_cache, const char* location) {
   CHECK(subdir != nullptr);
   std::string error_msg;
-  const char* android_data = GetAndroidDataSafe(&error_msg);
+  const char* android_data;
+  if (!StartsWith(location, "/system") || EndsWith(location, "boot.art") || EndsWith(location, "boot.oat")) {
+    android_data = GetAndroidDataSafe(&error_msg);
+  } else {
+    android_data = GetAndroidCacheSafe(&error_msg);
+  }
   if (android_data == nullptr) {
     *have_android_data = false;
     *dalvik_cache_exists = false;
@@ -1217,7 +1252,7 @@ void GetDalvikCache(const char* subdir, const bool create_if_absent, std::string
   const std::string dalvik_cache_root(StringPrintf("%s/dalvik-cache/", android_data));
   *dalvik_cache = dalvik_cache_root + subdir;
   *dalvik_cache_exists = OS::DirectoryExists(dalvik_cache->c_str());
-  *is_global_cache = strcmp(android_data, "/data") == 0;
+  *is_global_cache = strcmp(android_data, "/data") == 0 || strcmp(android_data, "/cache") == 0;
   if (create_if_absent && !*dalvik_cache_exists && !*is_global_cache) {
     // Don't create the system's /data/dalvik-cache/... because it needs special permissions.
     *dalvik_cache_exists = ((mkdir(dalvik_cache_root.c_str(), 0700) == 0 || errno == EEXIST) &&
@@ -1225,13 +1260,19 @@ void GetDalvikCache(const char* subdir, const bool create_if_absent, std::string
   }
 }
 
-std::string GetDalvikCacheOrDie(const char* subdir, const bool create_if_absent) {
+std::string GetDalvikCacheOrDie(const char* subdir, const bool create_if_absent, const char* location) {
   CHECK(subdir != nullptr);
-  const char* android_data = GetAndroidData();
+  const char* android_data;
+  if (!StartsWith(location, "/system") || EndsWith(location, "boot.art") || EndsWith(location, "boot.oat")) {
+    android_data = GetAndroidData();
+  } else {
+    android_data = GetAndroidCache();
+  }
   const std::string dalvik_cache_root(StringPrintf("%s/dalvik-cache/", android_data));
   const std::string dalvik_cache = dalvik_cache_root + subdir;
-  if (create_if_absent && !OS::DirectoryExists(dalvik_cache.c_str())) {
+  if (create_if_absent && !OS::DirectoryExists(dalvik_cache.c_str()) && strcmp(android_data, "/cache") != 0) {
     // Don't create the system's /data/dalvik-cache/... because it needs special permissions.
+    // or /cache/dalvik-cache
     if (strcmp(android_data, "/data") != 0) {
       int result = mkdir(dalvik_cache_root.c_str(), 0700);
       if (result != 0 && errno != EEXIST) {
