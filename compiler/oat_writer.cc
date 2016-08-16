@@ -38,7 +38,9 @@
 #include "mirror/class_loader.h"
 #include "mirror/dex_cache-inl.h"
 #include "mirror/object-inl.h"
+#ifdef USE_XPOSED_FRAMEWORK
 #include "oat_file.h"
+#endif
 #include "os.h"
 #include "output_stream.h"
 #include "safe_map.h"
@@ -332,6 +334,7 @@ class OatWriter::InitOatClassesMethodVisitor : public DexMethodVisitor {
     } else if (writer_->compiler_driver_->GetVerificationResults()->IsClassRejected(class_ref)) {
       status = mirror::Class::kStatusError;
 
+#ifdef USE_XPOSED_FRAMEWORK
       // If this file has been compiled before, skip verification errors.
       auto* orig_oat_dex_file = dex_file_->GetOatDexFile();
       if (orig_oat_dex_file != nullptr) {
@@ -341,6 +344,7 @@ class OatWriter::InitOatClassesMethodVisitor : public DexMethodVisitor {
         LOG(WARNING) << "Ignoring verification errors for " << PrettyDescriptor(descriptor)
                      << " during recompilation, setting status to " << status;
       }
+#endif
     } else {
       status = mirror::Class::kStatusNotReady;
     }

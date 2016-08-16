@@ -243,9 +243,11 @@ class ShadowFrame {
     return method_;
   }
 
+#ifdef USE_XPOSED_FRAMEWORK
   void SetMethod(ArtMethod* method) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
     method_ = method;
   }
+#endif
 
   mirror::Object* GetThisObject() const SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
 
@@ -439,6 +441,7 @@ class StackVisitor {
     }
   }
 
+#ifdef USE_XPOSED_FRAMEWORK
   void SetMethod(ArtMethod* method) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
     if (cur_shadow_frame_ != nullptr) {
       cur_shadow_frame_->SetMethod(method);
@@ -446,6 +449,7 @@ class StackVisitor {
       *cur_quick_frame_ = method;
     }
   }
+#endif
 
   bool IsShadowFrame() const {
     return cur_shadow_frame_ != nullptr;

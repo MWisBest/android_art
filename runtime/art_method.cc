@@ -32,12 +32,16 @@
 #include "mapping_table.h"
 #include "mirror/abstract_method.h"
 #include "mirror/class-inl.h"
+#ifdef USE_XPOSED_FRAMEWORK
 #include "mirror/method.h"
+#endif
 #include "mirror/object_array-inl.h"
 #include "mirror/object-inl.h"
 #include "mirror/string.h"
 #include "scoped_thread_state_change.h"
+#ifdef USE_XPOSED_FRAMEWORK
 #include "thread_list.h"
+#endif
 #include "well_known_classes.h"
 
 namespace art {
@@ -49,8 +53,10 @@ extern "C" void art_quick_invoke_static_stub(ArtMethod*, uint32_t*, uint32_t, Th
                                              const char*);
 #endif
 
+#ifdef USE_XPOSED_FRAMEWORK
 jclass ArtMethod::xposed_callback_class = nullptr;
 jmethodID ArtMethod::xposed_callback_method = nullptr;
+#endif
 
 ArtMethod* ArtMethod::FromReflectedMethod(const ScopedObjectAccessAlreadyRunnable& soa,
                                           jobject jlr_method) {
@@ -60,7 +66,11 @@ ArtMethod* ArtMethod::FromReflectedMethod(const ScopedObjectAccessAlreadyRunnabl
 }
 
 mirror::String* ArtMethod::GetNameAsString(Thread* self) {
+#ifdef USE_XPOSED_FRAMEWORK
   CHECK(!IsProxyMethod(true));
+#else
+  CHECK(!IsProxyMethod());
+#endif
   StackHandleScope<1> hs(self);
   Handle<mirror::DexCache> dex_cache(hs.NewHandle(GetDexCache()));
   auto* dex_file = dex_cache->GetDexFile();
@@ -128,7 +138,11 @@ ArtMethod* ArtMethod::FindOverriddenMethod(size_t pointer_size) {
     result = super_class->GetVTableEntry(method_index, pointer_size);
   } else {
     // Method didn't override superclass method so search interfaces
+#ifdef USE_XPOSED_FRAMEWORK
     if (IsProxyMethod(true)) {
+#else
+    if (IsProxyMethod()) {
+#endif
       result = GetDexCacheResolvedMethods()->GetElementPtrSize<ArtMethod*>(
           GetDexMethodIndex(), pointer_size);
       CHECK_EQ(result,
@@ -473,7 +487,11 @@ static uint32_t GetNumberOfReferenceArgsWithoutReceiver(ArtMethod* method)
 QuickMethodFrameInfo ArtMethod::GetQuickFrameInfo() {
   Runtime* runtime = Runtime::Current();
 
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(IsAbstract()) || IsXposedHookedMethod()) {
+#else
+  if (UNLIKELY(IsAbstract())) {
+#endif
     return runtime->GetCalleeSaveMethodFrameInfo(Runtime::kRefsAndArgs);
   }
 
@@ -489,7 +507,11 @@ QuickMethodFrameInfo ArtMethod::GetQuickFrameInfo() {
   // quick method not a stub. However, if instrumentation stubs are installed, the
   // instrumentation->GetQuickCodeFor() returns the artQuickProxyInvokeHandler instead of an
   // oat code pointer, thus we have to add a special case here.
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(IsProxyMethod(true))) {
+#else
+  if (UNLIKELY(IsProxyMethod())) {
+#endif
     if (IsDirect()) {
       CHECK(IsConstructor());
       return GetQuickFrameInfo(EntryPointToCodePointer(GetEntryPointFromQuickCompiledCode()));
@@ -524,10 +546,12 @@ QuickMethodFrameInfo ArtMethod::GetQuickFrameInfo() {
 }
 
 void ArtMethod::RegisterNative(const void* native_method, bool is_fast) {
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(IsXposedHookedMethod())) {
     GetXposedOriginalMethod()->RegisterNative(native_method, is_fast);
     return;
   }
+#endif
   CHECK(IsNative()) << PrettyMethod(this);
   CHECK(!IsFastNative()) << PrettyMethod(this);
   CHECK(native_method != nullptr) << PrettyMethod(this);
@@ -538,10 +562,12 @@ void ArtMethod::RegisterNative(const void* native_method, bool is_fast) {
 }
 
 void ArtMethod::UnregisterNative() {
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(IsXposedHookedMethod())) {
     GetXposedOriginalMethod()->UnregisterNative();
     return;
   }
+#endif
   CHECK(IsNative() && !IsFastNative()) << PrettyMethod(this);
   // restore stub to lookup native pointer via dlsym
   RegisterNative(GetJniDlsymLookupStub(), false);
@@ -573,6 +599,7 @@ bool ArtMethod::EqualParameters(Handle<mirror::ObjectArray<mirror::Class>> param
   return true;
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 static void StackReplaceMethod(Thread* thread, void* arg) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
   struct StackReplaceMethodVisitor FINAL : public StackVisitor {
     StackReplaceMethodVisitor(Thread* thread_in, ArtMethod* search, ArtMethod* replace)
@@ -648,5 +675,6 @@ void ArtMethod::EnableXposedHook(ScopedObjectAccess& soa, jobject additional_inf
   // Adjust access flags
   SetAccessFlags((GetAccessFlags() & ~kAccNative & ~kAccSynchronized) | kAccXposedHookedMethod);
 }
+#endif
 
 }  // namespace art

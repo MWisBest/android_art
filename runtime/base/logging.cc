@@ -185,7 +185,11 @@ class LogMessageData {
 LogMessage::LogMessage(const char* file, unsigned int line, LogSeverity severity, int error)
   : data_(new LogMessageData(file, line, severity, error)) {
   if (PrintDirectly(severity)) {
+#ifdef USE_XPOSED_FRAMEWORK
     static const char* log_characters = "VDIWEFVDIWEFF";
+#else
+    static const char* log_characters = "VDIWEFF";
+#endif
     CHECK_EQ(strlen(log_characters), INTERNAL_FATAL + 1U);
     stream() << ProgramInvocationShortName() << " " << log_characters[static_cast<size_t>(severity)]
              << " " << getpid() << " " << ::art::GetTid() << " " << file << ":" <<  line << "]";
@@ -238,8 +242,11 @@ std::ostream& LogMessage::stream() {
 static const android_LogPriority kLogSeverityToAndroidLogPriority[] = {
   ANDROID_LOG_VERBOSE, ANDROID_LOG_DEBUG, ANDROID_LOG_INFO, ANDROID_LOG_WARN,
   ANDROID_LOG_ERROR, ANDROID_LOG_FATAL,
+#ifdef USE_XPOSED_FRAMEWORK
   ANDROID_LOG_VERBOSE, ANDROID_LOG_DEBUG, ANDROID_LOG_INFO, ANDROID_LOG_WARN,
-  ANDROID_LOG_ERROR, ANDROID_LOG_FATAL, ANDROID_LOG_FATAL
+  ANDROID_LOG_ERROR, ANDROID_LOG_FATAL,
+#endif
+  ANDROID_LOG_FATAL
 };
 static_assert(arraysize(kLogSeverityToAndroidLogPriority) == INTERNAL_FATAL + 1,
               "Mismatch in size of kLogSeverityToAndroidLogPriority and values in LogSeverity");
@@ -250,16 +257,22 @@ void LogMessage::LogLine(const char* file, unsigned int line, LogSeverity log_se
 #ifdef HAVE_ANDROID_OS
   const char* tag = ProgramInvocationShortName();
   int priority = kLogSeverityToAndroidLogPriority[log_severity];
+#ifdef USE_XPOSED_FRAMEWORK
   if (log_severity >= XPOSED_VERBOSE && log_severity <= XPOSED_FATAL) {
     tag = "Xposed";
   }
+#endif
   if (priority == ANDROID_LOG_FATAL) {
     LOG_PRI(priority, tag, "%s:%u] %s", file, line, message);
   } else {
     LOG_PRI(priority, tag, "%s", message);
   }
 #else
+#ifdef USE_XPOSED_FRAMEWORK
   static const char* log_characters = "VDIWEFVDIWEFF";
+#else
+  static const char* log_characters = "VDIWEFF";
+#endif
   CHECK_EQ(strlen(log_characters), INTERNAL_FATAL + 1U);
   char severity = log_characters[log_severity];
   fprintf(stderr, "%s %c %5d %5d %s:%u] %s\n",
@@ -290,7 +303,11 @@ void LogMessage::LogLineLowStack(const char* file, unsigned int line, LogSeverit
     android_writeLog(priority, tag, message);
   }
 #else
+#ifdef USE_XPOSED_FRAMEWORK
   static const char* log_characters = "VDIWEFVDIWEFF";
+#else
+  static const char* log_characters = "VDIWEFF";
+#endif
   CHECK_EQ(strlen(log_characters), INTERNAL_FATAL + 1U);
 
   const char* program_name = ProgramInvocationShortName();

@@ -329,6 +329,10 @@ static void RunOptimizations(HGraph* graph,
   InstructionSimplifier simplify1(graph, stats);
   HBooleanSimplifier boolean_simplify(graph);
 
+#ifndef USE_XPOSED_FRAMEWORK
+  HInliner inliner(graph, dex_compilation_unit, dex_compilation_unit, driver, stats);
+#endif
+
   HConstantFolding fold2(graph, "constant_folding_after_inlining");
   SideEffectsAnalysis side_effects(graph);
   GVNOptimization gvn(graph, side_effects);
@@ -345,6 +349,9 @@ static void RunOptimizations(HGraph* graph,
     &fold1,
     &simplify1,
     &dce1,
+#ifndef USE_XPOSED_FRAMEWORK
+    &inliner,
+#endif
     // BooleanSimplifier depends on the InstructionSimplifier removing redundant
     // suspend checks to recognize empty blocks.
     &boolean_simplify,

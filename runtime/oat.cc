@@ -22,10 +22,13 @@
 #include "arch/instruction_set_features.h"
 #include "base/bit_utils.h"
 #include "base/stringprintf.h"
+
+#ifdef USE_XPOSED_FRAMEWORK
 #include "base/unix_file/fd_file.h"
 #include "elf_file.h"
 #include "oat_file.h"
 #include "os.h"
+#endif
 
 namespace art {
 
@@ -68,6 +71,7 @@ OatHeader* OatHeader::Create(InstructionSet instruction_set,
                                 variable_data);
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 OatHeader* OatHeader::FromFile(const std::string& filename, std::string* error_msg) {
   std::unique_ptr<File> file(OS::OpenFileForReading(filename.c_str()));
   if (file.get() == nullptr) {
@@ -90,6 +94,7 @@ OatHeader* OatHeader::FromFile(const std::string& filename, std::string* error_m
   memcpy(hdr.get(), &oat_header, header_size);
   return hdr.release();
 }
+#endif
 
 OatHeader::OatHeader(InstructionSet instruction_set,
                      const InstructionSetFeatures* instruction_set_features,
@@ -186,11 +191,13 @@ std::string OatHeader::GetValidationErrorMessage() const {
   return "";
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 bool OatHeader::IsXposedOatVersionValid() const {
   CHECK(IsValid());
   const char* version = GetStoreValueByKey(OatHeader::kXposedOatVersionKey);
   return version != nullptr && strcmp(version, kXposedOatCurrentVersion) == 0;
 }
+#endif
 
 const char* OatHeader::GetMagic() const {
   CHECK(IsValid());
@@ -202,6 +209,7 @@ uint32_t OatHeader::GetChecksum() const {
   return adler32_checksum_;
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 uint32_t OatHeader::GetOriginalChecksum(bool fallback) const {
   CHECK(IsValid());
   const char* value = GetStoreValueByKey(OatHeader::kXposedOriginalChecksumKey);
@@ -213,6 +221,7 @@ uint32_t OatHeader::GetOriginalChecksum(bool fallback) const {
   }
   return fallback ? adler32_checksum_ : 0;
 }
+#endif
 
 void OatHeader::UpdateChecksum(const void* data, size_t length) {
   DCHECK(IsValid());

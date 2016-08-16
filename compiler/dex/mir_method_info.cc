@@ -65,6 +65,9 @@ void MirMethodLoweringInfo::Resolve(CompilerDriver* compiler_driver,
   // definition) we still want to resolve methods and record all available info.
   Runtime* const runtime = Runtime::Current();
   const DexFile* const dex_file = mUnit->GetDexFile();
+#ifndef USE_XPOSED_FRAMEWORK
+  const bool use_jit = runtime->UseJit();
+#endif
   const VerifiedMethod* const verified_method = mUnit->GetVerifiedMethod();
   DexFileToMethodInlinerMap* inliner_map = compiler_driver->GetMethodInlinerMap();
   DexFileMethodInliner* default_inliner =
@@ -85,7 +88,11 @@ void MirMethodLoweringInfo::Resolve(CompilerDriver* compiler_driver,
     ArtMethod* resolved_method = nullptr;
 
     bool string_init = false;
+#ifdef USE_XPOSED_FRAMEWORK
     if (LIKELY(!it->IsQuickened()) && default_inliner->IsStringInitMethodIndex(it->MethodIndex())) {
+#else
+    if (default_inliner->IsStringInitMethodIndex(it->MethodIndex())) {
+#endif
       string_init = true;
       invoke_type = kDirect;
     }
@@ -99,6 +106,9 @@ void MirMethodLoweringInfo::Resolve(CompilerDriver* compiler_driver,
     } else {
       // The method index is actually the dex PC in this case.
       // Calculate the proper dex file and target method idx.
+#ifndef USE_XPOSED_FRAMEWORK
+      CHECK(use_jit);
+#endif
       CHECK_EQ(invoke_type, kVirtual);
       // Don't devirt if we are in a different dex file since we can't have direct invokes in
       // another dex file unless we always put a direct / patch pointer.
@@ -147,10 +157,16 @@ void MirMethodLoweringInfo::Resolve(CompilerDriver* compiler_driver,
     }
 
     MethodReference target_method(it->target_dex_file_, it->target_method_idx_);
+#ifdef USE_XPOSED_FRAMEWORK
     int fast_path_flags = compiler_driver->IsFastInvoke(
         soa, current_dex_cache, class_loader, mUnit, referrer_class.Get(), resolved_method,
         &invoke_type, &target_method, devirt_target, &it->direct_code_, &it->direct_method_,
         it->IsQuickened());
+#else
+    int fast_path_flags = compiler_driver->IsFastInvoke(
+        soa, current_dex_cache, class_loader, mUnit, referrer_class.Get(), resolved_method,
+        &invoke_type, &target_method, devirt_target, &it->direct_code_, &it->direct_method_);
+#endif
     const bool is_referrers_class = referrer_class.Get() == resolved_method->GetDeclaringClass();
     const bool is_class_initialized =
         compiler_driver->IsMethodsClassInitialized(referrer_class.Get(), resolved_method);

@@ -227,6 +227,10 @@ ifeq ($(ART_USE_TLAB),true)
   art_cflags += -DART_USE_TLAB=1
 endif
 
+ifeq ($(USE_XPOSED_FRAMEWORK),true)
+  art_cflags += -DUSE_XPOSED_FRAMEWORK
+endif
+
 # Cflags for non-debug ART and ART tools.
 art_non_debug_cflags := \
   -O3

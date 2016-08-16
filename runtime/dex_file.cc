@@ -31,11 +31,15 @@
 #include "art_method-inl.h"
 #include "base/logging.h"
 #include "base/stringprintf.h"
+#ifdef USE_XPOSED_FRAMEWORK
 #include "base/unix_file/fd_file.h"
+#endif
 #include "class_linker.h"
 #include "dex_file-inl.h"
 #include "dex_file_verifier.h"
+#ifdef USE_XPOSED_FRAMEWORK
 #include "elf_file.h"
+#endif
 #include "globals.h"
 #include "leb128.h"
 #include "mirror/string.h"
@@ -151,6 +155,7 @@ bool DexFile::Open(const char* filename, const char* location, std::string* erro
       return false;
     }
   }
+#ifdef USE_XPOSED_FRAMEWORK
   if (Runtime::Current()->IsAotCompiler() && (EndsWith(filename, ".oat") || EndsWith(filename, ".odex"))) {
     std::unique_ptr<File> file(new File(fd.release(), filename, true));
     std::unique_ptr<ElfFile> elf_file(ElfFile::Open(file.release(), PROT_READ | PROT_WRITE, MAP_PRIVATE, error_msg));
@@ -177,6 +182,7 @@ bool DexFile::Open(const char* filename, const char* location, std::string* erro
     }
     return true;
   }
+#endif
   *error_msg = StringPrintf("Expected valid zip or dex file: '%s'", filename);
   return false;
 }

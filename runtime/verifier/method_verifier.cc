@@ -408,7 +408,11 @@ MethodVerifier::MethodVerifier(Thread* self,
       need_precise_constants_(need_precise_constants),
       has_check_casts_(false),
       has_virtual_or_interface_invokes_(false),
+#ifdef USE_XPOSED_FRAMEWORK
       verify_to_dump_(verify_to_dump || dex_file->GetOatDexFile() != nullptr),
+#else
+      verify_to_dump_(verify_to_dump),
+#endif
       allow_thread_suspension_(allow_thread_suspension),
       link_(nullptr) {
   self->PushVerifier(this);
@@ -3523,6 +3527,7 @@ ArtMethod* MethodVerifier::VerifyInvocationArgs(
                                                                              is_range, res_method);
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 const RegType& MethodVerifier::FallbackToDebugInfo(const RegType& type, RegisterLine* reg_line, uint16_t slot) {
   if (LIKELY(!type.IsZero())) {
     return type;
@@ -3578,6 +3583,7 @@ const RegType& MethodVerifier::FallbackToDebugInfo(const RegType& type, Register
     return type;
   }
 }
+#endif
 
 ArtMethod* MethodVerifier::GetQuickInvokedMethod(const Instruction* inst, RegisterLine* reg_line,
                                                  bool is_range, bool allow_failure) {
@@ -3586,8 +3592,12 @@ ArtMethod* MethodVerifier::GetQuickInvokedMethod(const Instruction* inst, Regist
   } else {
     DCHECK_EQ(inst->Opcode(), Instruction::INVOKE_VIRTUAL_QUICK);
   }
+#ifdef USE_XPOSED_FRAMEWORK
   uint16_t this_reg = is_range ? inst->VRegC_3rc() : inst->VRegC_35c();
   const RegType& actual_arg_type = FallbackToDebugInfo(reg_line->GetInvocationThis(this, inst, is_range, allow_failure), reg_line, this_reg);
+#else
+  const RegType& actual_arg_type = reg_line->GetInvocationThis(this, inst, is_range, allow_failure);
+#endif
   if (!actual_arg_type.HasClass()) {
     VLOG(verifier) << "Failed to get mirror::Class* from '" << actual_arg_type << "'";
     return nullptr;
@@ -4136,8 +4146,12 @@ void MethodVerifier::VerifyISFieldAccess(const Instruction* inst, const RegType&
 ArtField* MethodVerifier::GetQuickFieldAccess(const Instruction* inst,
                                                       RegisterLine* reg_line) {
   DCHECK(IsInstructionIGetQuickOrIPutQuick(inst->Opcode())) << inst->Opcode();
+#ifdef USE_XPOSED_FRAMEWORK
   auto obj_reg = inst->VRegB_22c();
   const RegType& object_type = FallbackToDebugInfo(reg_line->GetRegisterType(this, obj_reg), reg_line, obj_reg);
+#else
+  const RegType& object_type = reg_line->GetRegisterType(this, inst->VRegB_22c());
+#endif
   if (!object_type.HasClass()) {
     VLOG(verifier) << "Failed to get mirror::Class* from '" << object_type << "'";
     return nullptr;

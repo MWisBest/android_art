@@ -112,7 +112,11 @@ class MANAGED LOCKABLE Object {
            ReadBarrierOption kReadBarrierOption = kWithReadBarrier>
   size_t SizeOf() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
 
+#ifdef USE_XPOSED_FRAMEWORK
   Object* Clone(Thread* self, size_t num_target_bytes = 0) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+#else
+  Object* Clone(Thread* self) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+#endif
 
   int32_t IdentityHashCode() const
       SHARED_LOCKS_REQUIRED(Locks::mutator_lock_)

@@ -557,10 +557,12 @@ void QuickCompiler::InitCompilationUnit(CompilationUnit& cu) const {
     // TODO: Find a cleaner way to do this.
     cu.disable_opt |= 1u << kLocalValueNumbering;
   }
+#ifdef USE_XPOSED_FRAMEWORK
   if (cu.dex_file->GetOatDexFile() != nullptr) {
     cu.disable_opt |= 1u << kGlobalValueNumbering;
     cu.disable_opt |= 1u << kLocalValueNumbering;
   }
+#endif
 }
 
 void QuickCompiler::Init() {
@@ -589,7 +591,11 @@ static uint32_t kCompilerOptimizerDisableFlags = 0 |  // Disable specific optimi
   // (1 << kMatch) |
   // (1 << kPromoteCompilerTemps) |
   // (1 << kSuppressExceptionEdges) |
+#ifdef USE_XPOSED_FRAMEWORK
   (1 << kSuppressMethodInlining) |
+#else
+  // (1 << kSuppressMethodInlining) |
+#endif
   0;
 
 static uint32_t kCompilerDebugFlags = 0 |     // Enable debug/testing modes

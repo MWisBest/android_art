@@ -366,11 +366,13 @@ std::string PrettyMethod(ArtMethod* m, bool with_signature) {
     result = PrettyReturnType(sig_as_string.c_str()) + " " + result +
         PrettyArguments(sig_as_string.c_str());
   }
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(m->IsXposedHookedMethod())) {
     result += " [XposedHooked]";
   } else if (UNLIKELY(m->IsXposedOriginalMethod())) {
     result += " [XposedOriginal]";
   }
+#endif
   return result;
 }
 

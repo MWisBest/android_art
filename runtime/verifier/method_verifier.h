@@ -676,8 +676,10 @@ class MethodVerifier {
   const RegType& FromClass(const char* descriptor, mirror::Class* klass, bool precise)
       SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
 
+#ifdef USE_XPOSED_FRAMEWORK
   const RegType& FallbackToDebugInfo(const RegType& type, RegisterLine* reg_line, uint16_t slot)
       SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+#endif
 
   // The thread we're verifying on.
   Thread* const self_;

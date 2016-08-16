@@ -26,7 +26,9 @@
 #include "object_callbacks.h"
 #include "quick/quick_method_frame_info.h"
 #include "read_barrier_option.h"
+#ifdef USE_XPOSED_FRAMEWORK
 #include "scoped_thread_state_change.h"
+#endif
 #include "stack.h"
 #include "stack_map.h"
 #include "utils.h"
@@ -38,11 +40,13 @@ class ScopedObjectAccessAlreadyRunnable;
 class StringPiece;
 class ShadowFrame;
 
+#ifdef USE_XPOSED_FRAMEWORK
 struct XposedHookInfo {
   jobject reflectedMethod;
   jobject additionalInfo;
   ArtMethod* originalMethod;
 };
+#endif
 
 namespace mirror {
 class Array;
@@ -117,10 +121,17 @@ class ArtMethod FINAL {
   }
 
   // Returns true if the method is static, private, or a constructor.
+#ifdef USE_XPOSED_FRAMEWORK
   bool IsDirect(bool ignore_xposed = false) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
     return IsDirect(GetAccessFlags(), ignore_xposed);
   }
+#else
+  bool IsDirect() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
+    return IsDirect(GetAccessFlags());
+  }
+#endif
 
+#ifdef USE_XPOSED_FRAMEWORK
   static bool IsDirect(uint32_t access_flags, bool ignore_xposed = false) {
     uint32_t mask = kAccStatic | kAccPrivate | kAccConstructor;
     if (LIKELY(!ignore_xposed)) {
@@ -128,6 +139,11 @@ class ArtMethod FINAL {
     }
     return (access_flags & mask) != 0;
   }
+#else
+  static bool IsDirect(uint32_t access_flags) {
+    return (access_flags & (kAccStatic | kAccPrivate | kAccConstructor)) != 0;
+  }
+#endif
 
   // Returns true if the method is declared synchronized.
   bool IsSynchronized() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
@@ -168,7 +184,11 @@ class ArtMethod FINAL {
     return (GetAccessFlags() & kAccSynthetic) != 0;
   }
 
+#ifdef USE_XPOSED_FRAMEWORK
   bool IsProxyMethod(bool ignore_xposed = false) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+#else
+  bool IsProxyMethod() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+#endif
 
   bool IsPreverified() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
     return (GetAccessFlags() & kAccPreverified) != 0;
@@ -314,10 +334,12 @@ class ArtMethod FINAL {
   }
   ALWAYS_INLINE void SetEntryPointFromQuickCompiledCodePtrSize(
       const void* entry_point_from_quick_compiled_code, size_t pointer_size) {
+#ifdef USE_XPOSED_FRAMEWORK
     if (kIsDebugBuild) {
       ScopedObjectAccess soa(Thread::Current());
       CHECK(Runtime::Current()->IsAotCompiler() || !IsXposedHookedMethod());
     }
+#endif
     SetEntryPoint(EntryPointFromQuickCompiledCodeOffset(pointer_size),
                   entry_point_from_quick_compiled_code, pointer_size);
   }
@@ -553,6 +575,7 @@ class ArtMethod FINAL {
   ALWAYS_INLINE mirror::ObjectArray<mirror::Class>* GetDexCacheResolvedTypes()
       SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
 
+#ifdef USE_XPOSED_FRAMEWORK
   // Xposed
   bool IsXposedHookedMethod() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
     return (GetAccessFlags() & kAccXposedHookedMethod) != 0;
@@ -575,6 +598,7 @@ class ArtMethod FINAL {
 
   static jclass xposed_callback_class;
   static jmethodID xposed_callback_method;
+#endif
 
  protected:
   // Field order required by test "ValidateFieldOrderOfJavaCppUnionClasses".

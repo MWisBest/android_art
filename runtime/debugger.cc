@@ -1583,9 +1583,14 @@ JDWP::JdwpError Dbg::OutputDeclaredMethods(JDWP::RefTypeId class_id, bool with_g
   size_t direct_method_count = c->NumDirectMethods();
   size_t virtual_method_count = c->NumVirtualMethods();
 
+#ifndef USE_XPOSED_FRAMEWORK
+  expandBufAdd4BE(pReply, direct_method_count + virtual_method_count);
+#endif
+
   auto* cl = Runtime::Current()->GetClassLinker();
   auto ptr_size = cl->GetImagePointerSize();
 
+#ifdef USE_XPOSED_FRAMEWORK
   size_t xposed_method_count = 0;
   for (size_t i = 0; i < direct_method_count + virtual_method_count; ++i) {
     ArtMethod* m = i < direct_method_count ?
@@ -1596,11 +1601,13 @@ JDWP::JdwpError Dbg::OutputDeclaredMethods(JDWP::RefTypeId class_id, bool with_g
   }
 
   expandBufAdd4BE(pReply, direct_method_count + virtual_method_count + xposed_method_count);
+#endif
 
   for (size_t i = 0; i < direct_method_count + virtual_method_count; ++i) {
     ArtMethod* m = i < direct_method_count ?
         c->GetDirectMethod(i, ptr_size) : c->GetVirtualMethod(i - direct_method_count, ptr_size);
 
+#ifdef USE_XPOSED_FRAMEWORK
     if (UNLIKELY(xposed_method_count > 0 && m->IsXposedHookedMethod())) {
       expandBufAddMethodId(pReply, ToMethodId(m));
       expandBufAddUtf8String(pReply, StringPrintf("%s<Xposed>", m->GetName()).c_str());
@@ -1613,6 +1620,7 @@ JDWP::JdwpError Dbg::OutputDeclaredMethods(JDWP::RefTypeId class_id, bool with_g
 
       m = m->GetXposedOriginalMethod();
     }
+#endif
 
     expandBufAddMethodId(pReply, ToMethodId(m));
     expandBufAddUtf8String(pReply, m->GetInterfaceMethodIfProxy(sizeof(void*))->GetName());

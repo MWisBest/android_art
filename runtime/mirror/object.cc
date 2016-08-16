@@ -118,25 +118,39 @@ class CopyObjectVisitor {
   DISALLOW_COPY_AND_ASSIGN(CopyObjectVisitor);
 };
 
+#ifdef USE_XPOSED_FRAMEWORK
 Object* Object::Clone(Thread* self, size_t num_target_bytes) {
+#else
+Object* Object::Clone(Thread* self) {
+#endif
   CHECK(!IsClass()) << "Can't clone classes.";
   // Object::SizeOf gets the right size even if we're an array. Using c->AllocObject() here would
   // be wrong.
   gc::Heap* heap = Runtime::Current()->GetHeap();
   size_t num_bytes = SizeOf();
+#ifdef USE_XPOSED_FRAMEWORK
   if (LIKELY(num_target_bytes == 0)) {
     num_target_bytes = num_bytes;
   } else {
     CHECK(num_target_bytes >= num_bytes);
   }
+#endif
   StackHandleScope<1> hs(self);
   Handle<Object> this_object(hs.NewHandle(this));
   Object* copy;
   CopyObjectVisitor visitor(self, &this_object, num_bytes);
   if (heap->IsMovableObject(this)) {
+#ifdef USE_XPOSED_FRAMEWORK
     copy = heap->AllocObject<true>(self, GetClass(), num_target_bytes, visitor);
+#else
+    copy = heap->AllocObject<true>(self, GetClass(), num_bytes, visitor);
+#endif
   } else {
+#ifdef USE_XPOSED_FRAMEWORK
     copy = heap->AllocNonMovableObject<true>(self, GetClass(), num_target_bytes, visitor);
+#else
+    copy = heap->AllocNonMovableObject<true>(self, GetClass(), num_bytes, visitor);
+#endif
   }
   return copy;
 }

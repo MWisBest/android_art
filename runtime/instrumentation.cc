@@ -115,9 +115,11 @@ static void UpdateEntrypoints(ArtMethod* method, const void* quick_code)
 }
 
 void Instrumentation::InstallStubsForMethod(ArtMethod* method) {
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(method->IsXposedHookedMethod())) {
     method = method->GetXposedOriginalMethod();
   }
+#endif
   if (method->IsAbstract() || method->IsProxyMethod()) {
     // Do not change stubs for these methods.
     return;

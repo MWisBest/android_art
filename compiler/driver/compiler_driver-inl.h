@@ -121,6 +121,7 @@ inline std::pair<bool, bool> CompilerDriver::IsFastInstanceField(
     ArtField* resolved_field, uint16_t field_idx) {
   DCHECK(!resolved_field->IsStatic());
   mirror::Class* fields_class = resolved_field->GetDeclaringClass();
+#ifdef USE_XPOSED_FRAMEWORK
   // Keep these classes in sync with prepareSubclassReplacement() calls in libxposed-art.
   mirror::Class* super_class = fields_class->GetSuperClass();
   while (super_class != nullptr) {
@@ -130,6 +131,7 @@ inline std::pair<bool, bool> CompilerDriver::IsFastInstanceField(
     }
     super_class = super_class->GetSuperClass();
   }
+#endif
   bool fast_get = referrer_class != nullptr &&
       referrer_class->CanAccessResolvedField(fields_class, resolved_field,
                                              dex_cache, field_idx);
@@ -314,21 +316,32 @@ inline uint16_t CompilerDriver::GetResolvedMethodVTableIndex(
   }
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 inline int CompilerDriver::IsFastInvoke(
     ScopedObjectAccess& soa, Handle<mirror::DexCache> dex_cache,
     Handle<mirror::ClassLoader> class_loader, const DexCompilationUnit* mUnit,
     mirror::Class* referrer_class, ArtMethod* resolved_method, InvokeType* invoke_type,
     MethodReference* target_method, const MethodReference* devirt_target,
     uintptr_t* direct_code, uintptr_t* direct_method, bool is_quickened) {
+#else
+inline int CompilerDriver::IsFastInvoke(
+    ScopedObjectAccess& soa, Handle<mirror::DexCache> dex_cache,
+    Handle<mirror::ClassLoader> class_loader, const DexCompilationUnit* mUnit,
+    mirror::Class* referrer_class, ArtMethod* resolved_method, InvokeType* invoke_type,
+    MethodReference* target_method, const MethodReference* devirt_target,
+    uintptr_t* direct_code, uintptr_t* direct_method) {
+#endif
   // Don't try to fast-path if we don't understand the caller's class.
   if (UNLIKELY(referrer_class == nullptr)) {
     return 0;
   }
+#ifdef USE_XPOSED_FRAMEWORK
   // Quickened calls are already sharpened, possibly to classes that are not accessible.
   // Skip access checks and further attempts to sharpen the call.
   if (is_quickened) {
     return kFlagMethodResolved;
   }
+#endif
   mirror::Class* methods_class = resolved_method->GetDeclaringClass();
   if (UNLIKELY(!referrer_class->CanAccessResolvedMethod(methods_class, resolved_method,
                                                         dex_cache.Get(),

@@ -319,6 +319,7 @@ JValue InvokeProxyInvocationHandler(ScopedObjectAccessAlreadyRunnable& soa, cons
   }
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 JValue InvokeXposedHandleHookedMethod(ScopedObjectAccessAlreadyRunnable& soa, const char* shorty,
                                     jobject rcvr_jobj, jmethodID method,
                                     std::vector<jvalue>& args) {
@@ -385,6 +386,7 @@ JValue InvokeXposedHandleHookedMethod(ScopedObjectAccessAlreadyRunnable& soa, co
     return result_unboxed;
   }
 }
+#endif
 
 bool FillArrayData(mirror::Object* obj, const Instruction::ArrayDataPayload* payload) {
   DCHECK_EQ(payload->ident, static_cast<uint16_t>(Instruction::kArrayDataSignature));

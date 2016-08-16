@@ -330,13 +330,21 @@ inline const char* ArtMethod::GetDeclaringClassDescriptor() {
   if (UNLIKELY(dex_method_idx == DexFile::kDexNoIndex)) {
     return "<runtime method>";
   }
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   const DexFile* dex_file = GetDexFile();
   return dex_file->GetMethodDeclaringClassDescriptor(dex_file->GetMethodId(dex_method_idx));
 }
 
 inline const char* ArtMethod::GetShorty(uint32_t* out_length) {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   const DexFile* dex_file = GetDexFile();
   return dex_file->GetMethodShorty(dex_file->GetMethodId(GetDexMethodIndex()), out_length);
 }
@@ -344,7 +352,11 @@ inline const char* ArtMethod::GetShorty(uint32_t* out_length) {
 inline const Signature ArtMethod::GetSignature() {
   uint32_t dex_method_idx = GetDexMethodIndex();
   if (dex_method_idx != DexFile::kDexNoIndex) {
+#ifdef USE_XPOSED_FRAMEWORK
     DCHECK(!IsProxyMethod(true));
+#else
+    DCHECK(!IsProxyMethod());
+#endif
     const DexFile* dex_file = GetDexFile();
     return dex_file->GetMethodSignature(dex_file->GetMethodId(dex_method_idx));
   }
@@ -354,7 +366,11 @@ inline const Signature ArtMethod::GetSignature() {
 inline const char* ArtMethod::GetName() {
   uint32_t dex_method_idx = GetDexMethodIndex();
   if (LIKELY(dex_method_idx != DexFile::kDexNoIndex)) {
+#ifdef USE_XPOSED_FRAMEWORK
     DCHECK(!IsProxyMethod(true));
+#else
+    DCHECK(!IsProxyMethod());
+#endif
     const DexFile* dex_file = GetDexFile();
     return dex_file->GetMethodName(dex_file->GetMethodId(dex_method_idx));
   }
@@ -375,14 +391,20 @@ inline const char* ArtMethod::GetName() {
 }
 
 inline const DexFile::CodeItem* ArtMethod::GetCodeItem() {
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(IsXposedHookedMethod())) {
     return nullptr;
   }
+#endif
   return GetDeclaringClass()->GetDexFile().GetCodeItem(GetCodeItemOffset());
 }
 
 inline bool ArtMethod::IsResolvedTypeIdx(uint16_t type_idx) {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   return GetDexCacheResolvedType(type_idx) != nullptr;
 }
 
@@ -395,13 +417,21 @@ inline int32_t ArtMethod::GetLineNumFromDexPC(uint32_t dex_pc) {
 }
 
 inline const DexFile::ProtoId& ArtMethod::GetPrototype() {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   const DexFile* dex_file = GetDexFile();
   return dex_file->GetMethodPrototype(dex_file->GetMethodId(GetDexMethodIndex()));
 }
 
 inline const DexFile::TypeList* ArtMethod::GetParameterTypeList() {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   const DexFile* dex_file = GetDexFile();
   const DexFile::ProtoId& proto = dex_file->GetMethodPrototype(
       dex_file->GetMethodId(GetDexMethodIndex()));
@@ -409,25 +439,39 @@ inline const DexFile::TypeList* ArtMethod::GetParameterTypeList() {
 }
 
 inline const char* ArtMethod::GetDeclaringClassSourceFile() {
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(IsXposedHookedMethod())) {
     return "<Xposed>";
   }
+#endif
   DCHECK(!IsProxyMethod());
   return GetDeclaringClass()->GetSourceFile();
 }
 
 inline uint16_t ArtMethod::GetClassDefIndex() {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   return GetDeclaringClass()->GetDexClassDefIndex();
 }
 
 inline const DexFile::ClassDef& ArtMethod::GetClassDef() {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   return GetDexFile()->GetClassDef(GetClassDefIndex());
 }
 
 inline const char* ArtMethod::GetReturnTypeDescriptor() {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   const DexFile* dex_file = GetDexFile();
   const DexFile::MethodId& method_id = dex_file->GetMethodId(GetDexMethodIndex());
   const DexFile::ProtoId& proto_id = dex_file->GetMethodPrototype(method_id);
@@ -436,27 +480,49 @@ inline const char* ArtMethod::GetReturnTypeDescriptor() {
 }
 
 inline const char* ArtMethod::GetTypeDescriptorFromTypeIdx(uint16_t type_idx) {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   const DexFile* dex_file = GetDexFile();
   return dex_file->GetTypeDescriptor(dex_file->GetTypeId(type_idx));
 }
 
 inline mirror::ClassLoader* ArtMethod::GetClassLoader() {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   return GetDeclaringClass()->GetClassLoader();
 }
 
 inline mirror::DexCache* ArtMethod::GetDexCache() {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   return GetDeclaringClass()->GetDexCache();
 }
 
+#ifdef USE_XPOSED_FRAMEWORK
 inline bool ArtMethod::IsProxyMethod(bool ignore_xposed) {
   return GetDeclaringClass()->IsProxyClass() || (!ignore_xposed && IsXposedHookedMethod());
 }
+#else
+inline bool ArtMethod::IsProxyMethod() {
+  return GetDeclaringClass()->IsProxyClass();
+}
+#endif
 
 inline ArtMethod* ArtMethod::GetInterfaceMethodIfProxy(size_t pointer_size) {
+#ifdef USE_XPOSED_FRAMEWORK
   if (LIKELY(!IsProxyMethod(true))) {
+#else
+  if (LIKELY(!IsProxyMethod())) {
+#endif
     return this;
   }
   mirror::Class* klass = GetDeclaringClass();
@@ -478,7 +544,11 @@ inline void ArtMethod::SetDexCacheResolvedTypes(
 }
 
 inline mirror::Class* ArtMethod::GetReturnType(bool resolve) {
+#ifdef USE_XPOSED_FRAMEWORK
   DCHECK(!IsProxyMethod(true));
+#else
+  DCHECK(!IsProxyMethod());
+#endif
   const DexFile* dex_file = GetDexFile();
   const DexFile::MethodId& method_id = dex_file->GetMethodId(GetDexMethodIndex());
   const DexFile::ProtoId& proto_id = dex_file->GetMethodPrototype(method_id);
@@ -496,9 +566,11 @@ void ArtMethod::VisitRoots(RootVisitorType& visitor) {
   visitor.VisitRootIfNonNull(declaring_class_.AddressWithoutBarrier());
   visitor.VisitRootIfNonNull(dex_cache_resolved_methods_.AddressWithoutBarrier());
   visitor.VisitRootIfNonNull(dex_cache_resolved_types_.AddressWithoutBarrier());
+#ifdef USE_XPOSED_FRAMEWORK
   if (UNLIKELY(IsXposedHookedMethod())) {
     GetXposedOriginalMethod()->VisitRoots(visitor);
   }
+#endif
 }
 
 inline void ArtMethod::CopyFrom(const ArtMethod* src, size_t image_pointer_size) {
